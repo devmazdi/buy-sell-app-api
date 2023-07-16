@@ -3,14 +3,13 @@ import handleAsyncErrors from "../middlewares/handleAsyncErrors.js";
 import ErrorHandler from "../utils/ErrorHandler.js"
 import sendEmail from "../utils/sendEmail.js";
 import crypto from "crypto";
+import authCookie from "../utils/authCookie.js";
 
 /**
  * @path /api/user/register
  * @description register user send verification email
  * @method POST
  */
-
-
 const registerUser = handleAsyncErrors(async(req, res, next) =>{ 
     const {first_name, last_name, email, password } = req.body;
     if(!first_name || !last_name || !email || !password){
@@ -26,7 +25,7 @@ const registerUser = handleAsyncErrors(async(req, res, next) =>{
 
     // send email
     try {
-        const getVerifyToken = newUser.generateToken();
+        const getVerifyToken = newUser.generateVerifyToken();
         const options = {
             email: newUser.email,
             subject: `Please verify email`,
@@ -37,7 +36,7 @@ const registerUser = handleAsyncErrors(async(req, res, next) =>{
         res.status(200).send({
             success: true,
             message: 'Email send pleas verify your email',
-            token: getVerifyToken
+            verifyToken: getVerifyToken
         });        
     } catch (error) {
         console.log(error)
@@ -49,7 +48,7 @@ const registerUser = handleAsyncErrors(async(req, res, next) =>{
     }  
 });
 /**
- * @path /api/user/register
+ * @path /api/user/verify
  * @description verify email with verify token
  * @method GET
  */
@@ -76,8 +75,39 @@ const verifyEmail = handleAsyncErrors(async(req, res, next) => {
     });     
 });
 
+const loginUser = handleAsyncErrors(async(req, res, next) => {
+    const { email, password} = req.body;
+    if(!email || !password){
+        return next( new ErrorHandler('Please enter email and password', 400));
+    }
+
+    const user = await User.findOne({email}).select('+password');
+    if(!user){
+        return next( new ErrorHandler('Invalid Email or Password', 401));  
+    }
+
+    // compare password
+    let matchPass = await user.comparePassword(password);
+    if(!matchPass){
+        return next( new ErrorHandler('Invalid Email or Password', 401));
+    }
+
+    const jwtToken = user.getJwtToken();
+
+    // set cookie
+    authCookie(jwtToken, res);
+
+    // send token
+    res.status(200).send({
+        success: true,
+        message: "Login success",
+        accessToken: jwtToken
+    })
+});
+
 
 export {
     registerUser,
-    verifyEmail, 
+    verifyEmail,
+    loginUser 
 }
