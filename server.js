@@ -3,13 +3,29 @@ import dotenv from "dotenv";
 import dbCon from "./utils/dbCon.js";
 import errorResponse from "./middlewares/errorMiddleware.js";
 import cookieParser from "cookie-parser";
+import mongoSanitize from "express-mongo-sanitize";
+import xssClean from "xss-clean";
+import cors from "cors";
+import helmet from "helmet";
 
 const app = express();
 dotenv.config();
 
+// Security headers
+app.use(helmet());
+
 // body parser
 app.use(express.json());
 app.use(cookieParser());
+
+// mongo data sanitize 
+app.use(mongoSanitize());
+
+// xss protection
+app.use(xssClean());
+
+// CORS
+app.use(cors());
 
 // routes
 import authRoutes from "./routes/authRoutes.js";

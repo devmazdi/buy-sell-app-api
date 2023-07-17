@@ -54,9 +54,13 @@ const  carSchema = new Schema({
     contract_number: String,
     seller_address: String,
     gallery_list: [String],
-    description: String
+    description: String,
+    user: {
+        type: Schema.ObjectId,
+        ref: 'User'
+    }
 },{timestamps: true});
-
+carSchema.index({ title: 'text', description: 'text'});
 carSchema.pre('save', function(next){
     this.slug = this.title.toLowerCase().replace(/[^A-Za-z0-9\-]/, '').replace(/\s+/g, '-') + this._id;
     next();
